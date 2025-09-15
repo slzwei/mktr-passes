@@ -1,4 +1,4 @@
-import { Template } from './types';
+import { Template } from './types.js';
 
 // Built-in templates for restaurant use cases
 export const STAMP_CARD_TEMPLATE: Template = {

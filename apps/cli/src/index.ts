@@ -52,6 +52,12 @@ async function makeSample(options: any) {
   const outputFile = options.out || `./dist/sample-${templateId}.pkpass`;
   const devMode = options.dev || process.env.DEV_SIGNING_MODE === 'mock';
 
+  // Resolve paths relative to project root (two levels up from apps/cli)
+  const projectRoot = path.resolve(__dirname, '../../..');
+  const resolvedVarsFile = varsFile ? path.resolve(projectRoot, varsFile) : varsFile;
+  const resolvedImagesDir = imagesDir ? path.resolve(projectRoot, imagesDir) : imagesDir;
+  const resolvedOutputFile = path.resolve(projectRoot, outputFile);
+
   console.log(`Generating sample pass for template: ${templateId}`);
 
   // Get template
@@ -65,8 +71,8 @@ async function makeSample(options: any) {
 
   // Load variables
   let variables: Record<string, any> = {};
-  if (varsFile) {
-    const varsContent = await fs.readFile(varsFile, 'utf8');
+  if (resolvedVarsFile) {
+    const varsContent = await fs.readFile(resolvedVarsFile, 'utf8');
     variables = JSON.parse(varsContent);
   } else {
     // Generate sample variables
@@ -75,9 +81,9 @@ async function makeSample(options: any) {
 
   // Load images
   const images: Record<string, Buffer> = {};
-  if (imagesDir) {
+  if (resolvedImagesDir) {
     try {
-      await loadImages(imagesDir, images);
+      await loadImages(resolvedImagesDir, images);
       // If no images were loaded, generate sample images
       if (Object.keys(images).length === 0) {
         console.log('No images found in directory, generating sample images...');
@@ -99,14 +105,14 @@ async function makeSample(options: any) {
   const certificates = await loadCertificates(devMode);
 
   // Ensure output directory exists
-  await fs.mkdir(path.dirname(outputFile), { recursive: true });
+  await fs.mkdir(path.dirname(resolvedOutputFile), { recursive: true });
 
   // Build .pkpass
   const result = await buildPkPass({
     passJson,
     images,
     signing: certificates,
-    outputPath: outputFile,
+    outputPath: resolvedOutputFile,
   });
 
   console.log(`✅ Generated .pkpass file: ${result.file}`);

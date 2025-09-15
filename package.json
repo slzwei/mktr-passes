@@ -18,7 +18,7 @@
     "test": "pnpm -r --if-present vitest run || pnpm -r --if-present jest --ci --runInBand || echo \"tests skipped\"",
     "db:migrate": "pnpm --filter @wallet-platform/db run migrate:deploy || echo \"no prisma\"",
     "db:reset": "pnpm --filter @wallet-platform/db migrate reset --force || echo \"no prisma\"",
-    "ci:sample": "pnpm --filter @wallet-platform/cli start make-sample --template stamp_card_v1 --vars ./apps/cli/samples/stamp.vars.json --images ./apps/cli/samples/images --out ./dist/ci-sample.pkpass --deterministic",
+    "ci:sample": "pnpm --filter @wallet-platform/cli start make-sample --template stamp_card_v1 --vars ./apps/cli/samples/stamp.vars.json --images ./apps/cli/samples/images --out ./dist/ci-sample.pkpass --deterministic --dev",
     "build": "pnpm --filter @wallet-platform/db run generate && pnpm -r --if-present build",
     "format": "prettier --write .",
     "clean": "pnpm -r clean",

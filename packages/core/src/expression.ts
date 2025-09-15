@@ -1,4 +1,4 @@
-import { Expr } from './types';
+import { Expr } from './types.js';
 
 /**
  * Evaluates an expression with the given variables
