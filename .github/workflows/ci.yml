@@ -1,0 +1,95 @@
+name: ci
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: wallet
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd="pg_isready -U postgres -d wallet"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      # Load CI env vars
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/wallet
+      STORAGE_DIR: ./apps/api/uploads
+      PKPASS_OUTPUT_DIR: ./apps/api/passes
+      DEV_SIGNING_MODE: mock
+      PASS_TEAM_IDENTIFIER: TEAMID_CI
+      PASS_TYPE_IDENTIFIER: pass.dev.ci
+      PASS_ORG_NAME: CI Org
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - name: Install system deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zip unzip openssl
+
+      - name: Install deps
+        run: pnpm -w install --frozen-lockfile
+
+      - name: Wait for Postgres
+        run: |
+          for i in {1..30}; do
+            pg_isready -h localhost -p 5432 -U postgres -d wallet && break
+            echo "waiting for postgres..."
+            sleep 2
+          done
+
+      - name: DB migrate
+        run: pnpm run migrate:deploy
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Test
+        run: pnpm run test
+
+      - name: Build (optional)
+        run: pnpm run build
+
+      - name: Deterministic sample pkpass
+        run: pnpm run cli:sample
+
+      - name: List dist
+        run: ls -lah dist || true
+
+      - name: Upload pkpass artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pkpass-sample
+          path: dist/ci-sample.pkpass
+          if-no-files-found: warn

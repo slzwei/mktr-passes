@@ -1,0 +1,84 @@
+{
+  "name": "Wallet Platform Development",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:20-bullseye",
+  
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "enableNonRootDocker": true
+    },
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "latest"
+    }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.vscode-typescript-next",
+        "bradlc.vscode-tailwindcss",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-eslint",
+        "prisma.prisma",
+        "ms-vscode.vscode-json",
+        "redhat.vscode-yaml",
+        "ms-vscode.vscode-docker",
+        "ms-vscode-remote.remote-containers"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "typescript.preferences.importModuleSpecifier": "relative",
+        "files.eol": "\n",
+        "files.insertFinalNewline": true,
+        "files.trimFinalNewlines": true
+      }
+    }
+  },
+
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker-host.sock,type=bind"
+  ],
+
+  "remoteUser": "node",
+  "workspaceFolder": "/workspace",
+
+  "forwardPorts": [3000, 3001, 8080, 5432],
+
+  "portsAttributes": {
+    "3000": {
+      "label": "Web Frontend",
+      "onAutoForward": "notify"
+    },
+    "3001": {
+      "label": "API Server",
+      "onAutoForward": "notify"
+    },
+    "8080": {
+      "label": "Adminer (Database UI)",
+      "onAutoForward": "silent"
+    },
+    "5432": {
+      "label": "PostgreSQL",
+      "onAutoForward": "silent"
+    }
+  },
+
+  "remoteEnv": {
+    "DOCKER_HOST": "unix:///var/run/docker-host.sock"
+  },
+
+  "containerEnv": {
+    "NODE_ENV": "development",
+    "DATABASE_URL": "postgresql://postgres:postgres@postgres:5432/wallet"
+  },
+
+  "initializeCommand": "git config --global --add safe.directory /workspace",
+
+  "shutdownAction": "none"
+}

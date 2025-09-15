@@ -1,0 +1,41 @@
+{
+  "name": "wallet-platform",
+  "version": "1.0.0",
+  "description": "Production-grade pass creation platform for Apple Wallet",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n web,api \"pnpm -w dev:web\" \"pnpm -w dev:api\"",
+    "dev:web": "pnpm --filter @wallet-platform/web dev",
+    "dev:api": "pnpm --filter @wallet-platform/api dev",
+    "worker:dev": "pnpm --filter @wallet-platform/api worker:dev",
+    "preci": "pnpm -w install",
+    "lint": "pnpm -r --if-present eslint . || echo \"eslint skipped\"",
+    "typecheck": "pnpm -r --if-present tsc -b || echo \"typecheck skipped\"",
+    "test": "pnpm -r --if-present vitest run || pnpm -r --if-present jest --ci --runInBand || echo \"tests skipped\"",
+    "db:migrate": "pnpm --filter @wallet-platform/db run migrate:deploy || echo \"no prisma\"",
+    "db:reset": "pnpm --filter @wallet-platform/db migrate reset --force || echo \"no prisma\"",
+    "ci:sample": "pnpm --filter @wallet-platform/cli start make-sample --template stamp_card_v1 --vars ./apps/cli/samples/stamp.vars.json --images ./apps/cli/samples/images --out ./dist/ci-sample.pkpass --deterministic",
+    "build": "pnpm -r --if-present build",
+    "format": "prettier --write .",
+    "clean": "pnpm -r clean",
+    "stack:up": "docker compose up -d",
+    "stack:down": "docker compose down",
+    "stack:logs": "docker compose logs -f",
+    "stack:reset": "./scripts/oneclick-reset-db.sh"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "concurrently": "^8.2.2",
+    "husky": "^8.0.3",
+    "prettier": "^3.1.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}

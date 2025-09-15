@@ -1,0 +1,42 @@
+# Set default behavior to automatically normalize line endings
+* text=auto
+
+# Force Unix line endings for shell scripts
+*.sh text eol=lf
+*.ps1 text eol=crlf
+
+# Force Unix line endings for configuration files
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+
+# Force Unix line endings for Docker files
+Dockerfile text eol=lf
+*.dockerfile text eol=lf
+docker-compose*.yml text eol=lf
+
+# Force Unix line endings for package files
+package.json text eol=lf
+package-lock.json text eol=lf
+pnpm-lock.yaml text eol=lf
+
+# Force Unix line endings for documentation
+*.md text eol=lf
+*.txt text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.gz binary
+*.pkpass binary

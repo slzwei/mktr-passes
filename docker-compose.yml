@@ -1,0 +1,171 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16
+    container_name: wallet-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: wallet
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/db/prisma/migrations:/docker-entrypoint-initdb.d/migrations:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d wallet"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - wallet-network
+
+  # Adminer Database UI
+  adminer:
+    image: adminer:latest
+    container_name: wallet-adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - wallet-network
+
+  # API Service
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: wallet-api
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/wallet
+      - STORAGE_DIR=/app/uploads
+      - PKPASS_OUTPUT_DIR=/app/passes
+      - DEV_SIGNING_MODE=mock
+      - PASS_TEAM_IDENTIFIER=TEAMID_DEV
+      - PASS_TYPE_IDENTIFIER=pass.dev.local
+      - PASS_ORG_NAME=Dev Org
+      - APNS_MODE=mock
+      - APNS_TOPIC=pass.dev.local
+      - APNS_ENV=sandbox
+      - APNS_TEAM_ID=TEAMID_DEV
+      - APNS_KEY_ID=ABC123XYZ
+      - PASS_WEB_AUTH_SCHEME=ApplePass
+      - JWT_SECRET=dev-jwt-secret-not-for-production
+      - LOG_LEVEL=info
+    volumes:
+      - ./apps/api:/app/apps/api:ro
+      - ./packages:/app/packages:ro
+      - ./infra/db:/app/infra/db:ro
+      - ./package.json:/app/package.json:ro
+      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml:ro
+      - ./pnpm-lock.yaml:/app/pnpm-lock.yaml:ro
+      - api_uploads:/app/uploads
+      - api_passes:/app/passes
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["pnpm", "run", "dev:api"]
+    networks:
+      - wallet-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Worker Service (APNs/Outbox)
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: wallet-worker
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/wallet
+      - STORAGE_DIR=/app/uploads
+      - PKPASS_OUTPUT_DIR=/app/passes
+      - DEV_SIGNING_MODE=mock
+      - PASS_TEAM_IDENTIFIER=TEAMID_DEV
+      - PASS_TYPE_IDENTIFIER=pass.dev.local
+      - PASS_ORG_NAME=Dev Org
+      - APNS_MODE=mock
+      - APNS_TOPIC=pass.dev.local
+      - APNS_ENV=sandbox
+      - APNS_TEAM_ID=TEAMID_DEV
+      - APNS_KEY_ID=ABC123XYZ
+      - PASS_WEB_AUTH_SCHEME=ApplePass
+      - JWT_SECRET=dev-jwt-secret-not-for-production
+      - LOG_LEVEL=info
+    volumes:
+      - ./apps/api:/app/apps/api:ro
+      - ./packages:/app/packages:ro
+      - ./infra/db:/app/infra/db:ro
+      - ./package.json:/app/package.json:ro
+      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml:ro
+      - ./pnpm-lock.yaml:/app/pnpm-lock.yaml:ro
+      - api_uploads:/app/uploads
+      - api_passes:/app/passes
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["pnpm", "run", "worker:dev"]
+    networks:
+      - wallet-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # Web Frontend
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: wallet-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=http://localhost:3001
+    volumes:
+      - ./apps/web:/app/apps/web:ro
+      - ./packages:/app/packages:ro
+      - ./package.json:/app/package.json:ro
+      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml:ro
+      - ./pnpm-lock.yaml:/app/pnpm-lock.yaml:ro
+    depends_on:
+      api:
+        condition: service_healthy
+    command: ["pnpm", "run", "dev:web"]
+    networks:
+      - wallet-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  pgdata:
+    driver: local
+  api_uploads:
+    driver: local
+  api_passes:
+    driver: local
+
+networks:
+  wallet-network:
+    driver: bridge

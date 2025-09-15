@@ -1,0 +1,158 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Template {
+  id        String   @id @default(cuid())
+  name      String
+  style     String   @default("generic")
+  version   String   @default("1.0.0")
+  schemaJson Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  passes Pass[]
+
+  @@map("templates")
+}
+
+model Asset {
+  id           String   @id @default(cuid())
+  role         String   // icon, logo, strip, background, thumbnail
+  originalName String
+  width        Int
+  height       Int
+  sha256       String   @unique
+  path         String
+  createdAt    DateTime @default(now())
+
+  // Relations
+  passAssets PassAsset[]
+
+  @@map("assets")
+}
+
+model Pass {
+  id              String   @id @default(cuid())
+  serialNumber    String   @unique
+  templateId      String
+  variablesJson   Json
+  colorsJson      Json?
+  barcodeJson     Json?
+  lastUpdateTag   String   @default("0") // monotonically increasing string tag
+  lastUpdatedAt   DateTime @default(now())
+  authToken       String   // used in ApplePass Authorization header
+  pkpassPath      String?  // Path to generated .pkpass file
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  template     Template           @relation(fields: [templateId], references: [id])
+  passAssets   PassAsset[]
+  registrations PassRegistration[]
+  updateOutbox UpdateOutbox[]
+
+  @@map("passes")
+}
+
+model PassAsset {
+  id      String @id @default(cuid())
+  passId  String
+  assetId String
+  role    String // icon, logo, strip, background, thumbnail
+
+  // Relations
+  pass  Pass  @relation(fields: [passId], references: [id], onDelete: Cascade)
+  asset Asset @relation(fields: [assetId], references: [id])
+
+  @@unique([passId, assetId])
+  @@map("pass_assets")
+}
+
+// Future models for Milestone 2+
+model Issuer {
+  id        String   @id @default(cuid())
+  name      String
+  teamId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  projects Project[]
+
+  @@map("issuers")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  name      String
+  issuerId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  issuer Issuer @relation(fields: [issuerId], references: [id])
+
+  @@map("projects")
+}
+
+// Phase 2: Apple Wallet Web Service models
+model Device {
+  id                      String   @id @default(cuid())
+  deviceLibraryIdentifier String   @unique
+  pushToken               String   // APNs device token
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  registrations PassRegistration[]
+
+  @@map("devices")
+}
+
+model PassRegistration {
+  id                   String   @id @default(cuid())
+  passId               String
+  deviceId             String
+  passTypeIdentifier   String
+  createdAt            DateTime @default(now())
+
+  pass   Pass   @relation(fields: [passId], references: [id], onDelete: Cascade)
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([passId, deviceId]) // prevent duplicates
+  @@map("pass_registrations")
+}
+
+model UpdateOutbox {
+  id        String   @id @default(cuid())
+  passId    String
+  payload   Json     // { type: 'apns', deviceToken, topic, env }
+  status    String   @default("pending") // pending|sent|failed
+  attempts  Int      @default(0)
+  lastError String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pass Pass @relation(fields: [passId], references: [id], onDelete: Cascade)
+
+  @@map("update_outbox")
+}

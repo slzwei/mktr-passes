@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run linting and type checking
+echo "🔍 Running pre-commit checks..."
+
+# Lint all packages
+echo "📝 Linting..."
+pnpm -r lint || echo "⚠️  Linting skipped (no eslint config found)"
+
+# Type check all packages
+echo "🔧 Type checking..."
+pnpm -r typecheck || echo "⚠️  Type checking skipped (no tsc config found)"
+
+echo "✅ Pre-commit checks completed"

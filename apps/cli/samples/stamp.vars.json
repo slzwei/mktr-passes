@@ -1,0 +1,8 @@
+{
+  "brandName": "CI Test Store",
+  "stampCount": 3,
+  "stampTarget": 10,
+  "rewardText": "Free Coffee",
+  "barcodeMessage": "STAMP123456",
+  "barcodeAltText": "Stamp Card ID: STAMP123456"
+}
